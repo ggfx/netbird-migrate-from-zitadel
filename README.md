@@ -20,15 +20,13 @@ https://docs.netbird.io/selfhosted/migration/external-to-embedded-idp
 Before running `netbird-migrate-from-zitadel.sh`, you need a Zitadel OIDC Web
 Application for NetBird.
 
-The migration workflow uses `create-zitadel-netbird-sso-project.sh` to create:
-- A Zitadel project for NetBird.
-- A Zitadel OIDC Web application with the required settings.
-- Client credentials output for the migration flow.
-
-To run this helper script, you must provide a Personal Access Token (PAT) with
+You must provide a Personal Access Token (PAT) with
 Org Owner permission in your Zitadel organization. Create one with very short expiration (max 1 day).
 
-For manual PAT creation, login to Zitadel as Administrator, got to Users -> service-users, choose zitadel-admin-sa -> Personal Access Tokens and click on New:
+Login to Zitadel as Administrator, got to Users -> service-users, choose _zitadel-admin-sa_ -> Personal Access Tokens and click on New. **Copy the Token to the file `netbird-migrate-from-zitadel.env` in Netbird directory** (if the file is missing, create it):
+```sh
+MIGRATE_FROM_ZITATEL_PAT="YOUR-PERSONAL-ACCESS-TOKEN"
+```
 <img src="assets/zitadel-service-user-pat-00.png" /><br>
 <br>
 Go back to Organization, click on managers:
