@@ -73,10 +73,10 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 LATEST_TAG=$(curl -s https://api.github.com/repos/netbirdio/netbird/releases/latest | jq -r '.tag_name')
 LATEST_V=${LATEST_TAG#*v}
 
-# Read domain from management.json, find HttpConfig.AuthIssuer in json and extract the domain part from the URL. This is needed to configure the OIDC provider for Zitadel.
-DOMAIN=$(jq -r '.HttpConfig.AuthIssuer' "$SCRIPT_DIR/management.json" | awk -F[/:] '{print $4}')
+# Get the domain from dashboard.env, find NETBIRD_MGMT_API_ENDPOINT and extract the domain part from the URL. This is needed to configure the OIDC provider for Zitadel.
+DOMAIN=$(grep -Eo 'NETBIRD_MGMT_API_ENDPOINT=https?://[^/"]+' "$SCRIPT_DIR/dashboard.env" | awk -F[/:] '{print $4}')
 
-# Read variables from zitadel.env, using ZITADEL_EXTERNALDOMAIN as the domain if it is set, otherwise fallback to the domain extracted from management.json. This allows users to specify a different domain for Zitadel if needed.
+# Read variables from zitadel.env, using ZITADEL_EXTERNALDOMAIN as the domain if it is set, otherwise fallback to the domain extracted from dashboard.env. This allows users to specify a different domain for Zitadel if needed.
 if [[ -f "$SCRIPT_DIR/zitadel.env" ]]; then
   source "$SCRIPT_DIR/zitadel.env"
   DOMAIN_Z=${ZITADEL_EXTERNALDOMAIN:-$DOMAIN}
