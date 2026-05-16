@@ -137,12 +137,14 @@ if [[ ! -f "$SCRIPT_DIR/netbird-migrate-from-zitadel.env" ]]; then
 fi
 source "$SCRIPT_DIR/netbird-migrate-from-zitadel.env"
 if [[ -z "${CLIENT_ID:-}" || -z "${CLIENT_SECRET:-}" ]]; then
-  echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in netbird-migrate-from-zitadel.env."
-  echo "You can use the create-zitadel-netbird-sso-project.sh script to create a project and OIDC Web application for NetBird in your Zitadel instance which will write the resulting client credentials to netbird-migrate-from-zitadel.env."
-  echo "If you want to manually create a Zitadel Web application for Netbird, you can follow the instructions in the documentation:"
-  echo "https://docs.netbird.io/selfhosted/identity-providers/zitadel"
-  echo "Console: https://$DOMAIN_Z/ui/console/"
-  exit 1
+  if ! ./create-zitadel-netbird-sso-project.sh; then
+    echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in netbird-migrate-from-zitadel.env."
+    echo "You can use the create-zitadel-netbird-sso-project.sh script to create a project and OIDC Web application for NetBird in your Zitadel instance which will write the resulting client credentials to netbird-migrate-from-zitadel.env."
+    echo "If you want to manually create a Zitadel Web application for Netbird, you can follow the instructions in the documentation:"
+    echo "https://docs.netbird.io/selfhosted/identity-providers/zitadel"
+    echo "Console: https://$DOMAIN_Z/ui/console/"
+    exit 1
+  fi
 fi
 
 cat > connector.json <<EOF
