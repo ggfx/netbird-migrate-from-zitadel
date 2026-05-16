@@ -29,19 +29,7 @@ for arg in "$@"; do
   esac
 done
 
-# First check if this script is required to run. Check in docker compose if there is already a container name "netbird-server" then exit with a message that migration is not needed.
-# This ensures that users do not run the migration tool unnecessarily if they are already on the latest version of Netbird.
-if docker compose ps | grep -q "netbird-server"; then
-  echo "Netbird Server container is already running. Migration from Zitadel is not needed."
-  exit 0
-fi
-
-# Start this script as root to ensure we have the necessary permissions to access the management server data and configuration for backup and migration purposes.
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root to ensure proper permissions for backup and migration."
-  exit 1
-fi
-
+# Function to set or update environment variables in a .env file.
 set_env_var() {
   local env_file="$1"
   local key="$2"
@@ -68,7 +56,27 @@ set_env_var() {
   ' "$env_file" > "$tmp" && mv "$tmp" "$env_file"
 }
 
+# Start this script as root to ensure we have the necessary permissions to access the management server data and configuration for backup and migration purposes.
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root to ensure proper permissions for backup and migration."
+  exit 1
+fi
+
+# First check if this script is required to run. Check in docker compose if there is already a container name "netbird-server" then exit with a message that migration is not needed.
+# This ensures that users do not run the migration tool unnecessarily if they are already on the latest version of Netbird.
+if docker compose ps | grep -q "netbird-server"; then
+  echo "Netbird Server container is already running. Migration from Zitadel is not needed."
+  exit 0
+fi
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Verify that we are in the correct directory by checking for the presence of dashboard.env and zitadel.env files.
+# If these files are missing, exit with a message to run the script from the correct directory.
+if [[ ! -f "$SCRIPT_DIR/dashboard.env" || ! -f "$SCRIPT_DIR/zitadel.env" ]]; then
+  echo "Please run this script from the directory where your dashboard.env and zitadel.env files are located."
+  exit 1
+fi
 
 LATEST_TAG=$(curl -s https://api.github.com/repos/netbirdio/netbird/releases/latest | jq -r '.tag_name')
 LATEST_V=${LATEST_TAG#*v}
@@ -77,10 +85,8 @@ LATEST_V=${LATEST_TAG#*v}
 DOMAIN=$(grep -Eo 'NETBIRD_MGMT_API_ENDPOINT=https?://[^/"]+' "$SCRIPT_DIR/dashboard.env" | awk -F[/:] '{print $4}')
 
 # Read variables from zitadel.env, using ZITADEL_EXTERNALDOMAIN as the domain if it is set, otherwise fallback to the domain extracted from dashboard.env. This allows users to specify a different domain for Zitadel if needed.
-if [[ -f "$SCRIPT_DIR/zitadel.env" ]]; then
-  source "$SCRIPT_DIR/zitadel.env"
-  DOMAIN_Z=${ZITADEL_EXTERNALDOMAIN:-$DOMAIN}
-fi
+source "$SCRIPT_DIR/zitadel.env"
+DOMAIN_Z=${ZITADEL_EXTERNALDOMAIN:-$DOMAIN}
 
 # Stop the script if dashboard.env already contains https://$DOMAIN/oauth2"
 if grep -q "https://$DOMAIN/oauth2" "$SCRIPT_DIR/dashboard.env"; then
@@ -114,24 +120,27 @@ if [[ $DOWNLOAD -eq 1 || ! -f "./netbird-idp-migrate" ]]; then
 fi
 
 # Step 3. Prepare your provider (Zitadel)
-# Manual step required: Create a Web application in Zitadel
 
-# Read CLIENT_ID and CLIENT_SECRET from netbird-migrate-from-zitadel.env, create file with empty keys, if it does not exist. This file is expected to be created by the user with the credentials from the Zitadel Web application.
+# Read CLIENT_ID and CLIENT_SECRET from netbird-migrate-from-zitadel.env, create file with empty keys, if it does not exist.
+# This file is expected to be created by the user with the credentials from the Zitadel Web application.
 # Stop early when netbird-migrate-from-zitadel.env file is missing or the web app credentials are not configured yet. Check for missing client_id or client_secret and exit with a message to set up a Zitadel Web application first.
 if [[ ! -f "$SCRIPT_DIR/netbird-migrate-from-zitadel.env" ]]; then
-  cat > "$SCRIPT_DIR/netbird-migrate-from-zitadel.env" <<EOF
-CLIENT_ID=""
-CLIENT_SECRET=""
-EOF
-  echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in netbird-migrate-from-zitadel.env."
-  echo "Docs: https://docs.netbird.io/selfhosted/identity-providers/zitadel"
-  echo "Console: https://$DOMAIN_Z/ui/console/"
-  exit 1
+# Manual step required: Create a Personal Access Token
+# Use the script create-zitadel-netbird-sso-project.sh to create a project and OIDC Web application for NetBird in your Zitadel instance.
+# It will write the resulting client credentials to netbird-migrate-from-zitadel.env
+# The script will also read the necessary configuration from your existing dashboard.env and zitadel.env files to set up the OIDC provider configuration correctly for the migration process.
+# If there is any issue this scripts exits with an appropriate message to help you troubleshoot the configuration.
+  if ! ./create-zitadel-netbird-sso-project.sh; then
+    echo "Failed to create Zitadel project/application. Aborting migration."
+    exit 1
+  fi
 fi
 source "$SCRIPT_DIR/netbird-migrate-from-zitadel.env"
 if [[ -z "${CLIENT_ID:-}" || -z "${CLIENT_SECRET:-}" ]]; then
   echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in netbird-migrate-from-zitadel.env."
-  echo "Docs: https://docs.netbird.io/selfhosted/identity-providers/zitadel"
+  echo "You can use the create-zitadel-netbird-sso-project.sh script to create a project and OIDC Web application for NetBird in your Zitadel instance which will write the resulting client credentials to netbird-migrate-from-zitadel.env."
+  echo "If you want to manually create a Zitadel Web application for Netbird, you can follow the instructions in the documentation:"
+  echo "https://docs.netbird.io/selfhosted/identity-providers/zitadel"
   echo "Console: https://$DOMAIN_Z/ui/console/"
   exit 1
 fi
