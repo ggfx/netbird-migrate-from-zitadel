@@ -73,15 +73,13 @@ if [[ ! -f "$OUTPUT_ENV" ]]; then
 MIGRATE_FROM_ZITATEL_PAT=""
 EOF
   echo "Created $OUTPUT_ENV template."
-  echo "Please create a Personal Access Token (PAT) and set the value of MIGRATE_FROM_ZITATEL_PAT='' in $OUTPUT_ENV."
+  echo "Please create a Personal Access Token (PAT) in Zitadel and set MIGRATE_FROM_ZITATEL_PAT in $OUTPUT_ENV."
   exit 1
 fi
 
-source "$ZITADEL_ENV_FILE"
 source "$OUTPUT_ENV"
-
-if [[ -z "${ZITADEL_EXTERNALDOMAIN:-}" || -z "${MIGRATE_FROM_ZITATEL_PAT:-}" ]]; then
-  echo "Please set ZITADEL_EXTERNALDOMAIN in $ZITADEL_ENV_FILE and MIGRATE_FROM_ZITATEL_PAT in $OUTPUT_ENV"
+if [[ -z "${MIGRATE_FROM_ZITATEL_PAT:-}" ]]; then
+  echo "Please create a Personal Access Token (PAT) in Zitadel and set MIGRATE_FROM_ZITATEL_PAT in $OUTPUT_ENV."
   exit 1
 fi
 
@@ -90,7 +88,13 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-BASE_URL="https://${ZITADEL_EXTERNALDOMAIN}"
+# set BASE_URL based on ZITADEL_EXTERNALDOMAIN if set, otherwise use NETBIRD_MGMT_API_ENDPOINT
+source "$ZITADEL_ENV_FILE"
+if [[ -z "${ZITADEL_EXTERNALDOMAIN:-}" ]]; then
+  BASE_URL="$NETBIRD_MGMT_API_ENDPOINT"
+else
+  BASE_URL="https://${ZITADEL_EXTERNALDOMAIN}"
+fi
 
 api_call() {
   local method="$1"
