@@ -27,16 +27,17 @@ Login to Zitadel as Administrator, got to Users -> service-users, choose _zitade
 ```sh
 MIGRATE_FROM_ZITATEL_PAT="YOUR-PERSONAL-ACCESS-TOKEN"
 ```
-<img src="assets/zitadel-service-user-pat-00.png" /><br>
+
+![Create service user PAT](assets/zitadel-service-user-pat-00.png)<br>
 <br>
 Go back to Organization, click on managers:
-<img src="assets/zitadel-service-user-pat-01.png" /><br>
+![Add Organization manager](assets/zitadel-service-user-pat-01.png)<br>
 <br>
 Add zitadel-admin-sa:
-<img src="assets/zitadel-service-user-pat-02.png" /><br>
+![Add zitadel-admin-sa as manager](assets/zitadel-service-user-pat-02.png)<br>
 <br>
 Set permissions for zitadel-admin-sa to Org Owner:
-<img src="assets/zitadel-service-user-pat-03.png" /><br>
+![Set Org Owner permission](assets/zitadel-service-user-pat-03.png)<br>
 
 ## Usage
 
