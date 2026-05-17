@@ -174,7 +174,13 @@ docker compose stop management
 # Step 5. Backup data
 
 # Identify the volume name
+# If there are multiple volumes with "management" or "mgmt" in the name, this command will return multiple lines, which will cause an error in the next steps.
+# In that case exit with message to clean up the volumes and ensure there is only one volume for the management server.
 VOLUME_NAME=$(docker volume ls --format '{{ .Name }}' | grep -Ei 'management|mgmt')
+if [[ $(echo "$VOLUME_NAME" | wc -l) -ne 1 ]]; then
+  echo "Error: Multiple or no management volumes found. Please ensure there is only one volume for the management server."
+  exit 1
+fi
 echo "Volume: $VOLUME_NAME"
 
 # Get the host path
