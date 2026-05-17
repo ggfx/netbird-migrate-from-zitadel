@@ -207,8 +207,9 @@ fi
 
 # Step 6. Validate and dry-run
 
-echo $NETBIRD_CONFIG_PATH
-echo $NETBIRD_DATA_DIR
+echo NETBIRD_CONFIG_PATH: $NETBIRD_CONFIG_PATH
+echo NETBIRD_DATA_DIR: $NETBIRD_DATA_DIR
+echo NETBIRD_IDP_SEED_INFO:
 echo $NETBIRD_IDP_SEED_INFO | base64 -d
 
 # This should match the same env var content that is passed to the management server
@@ -217,14 +218,14 @@ echo $NETBIRD_IDP_SEED_INFO | base64 -d
 # first check with --dry-run to validate the migration without applying changes then exit the script before post-migration.
 if [[ $DRY_RUN -eq 1 ]]; then
   echo "Running in dry-run mode. No changes will be applied."
-  ./netbird-idp-migrate --domain $DOMAIN_Z --dry-run
+  ./netbird-idp-migrate --domain $DOMAIN --dry-run
 
   docker compose start management
   echo "Dry-run completed. If the output looks good, run the script again with --apply to apply the migration changes."
   exit 0  
 else
   echo "Running migration. Changes will be applied."
-  ./netbird-idp-migrate --domain $DOMAIN_Z
+  ./netbird-idp-migrate --domain $DOMAIN
 fi
 
 # Step 7. Post-migration
