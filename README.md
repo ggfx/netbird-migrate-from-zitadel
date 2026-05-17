@@ -10,7 +10,7 @@ The main script, `netbird-migrate-from-zitadel.sh`, is an attempt to automate as
 - Safe by default (`dry-run` first).
 - Built-in compatibility check against latest NetBird release.
 - Automatic backup creation before destructive changes.
-- Automatic creation of a OIDC Web Application via Zitadel v1 API.
+- Automatic creation of a OIDC web application via Zitadel v1 API.
 - Automatic `dashboard.env` key updates via `set_env_var` helper.
 - Clear operator guidance for Caddy route completion.
 - Includes rollback script for quick recovery.

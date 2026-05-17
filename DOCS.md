@@ -12,8 +12,7 @@
 
 3. Validates Zitadel input:
 - Requires `netbird-migrate-from-zitadel.env` with `CLIENT_ID` and `CLIENT_SECRET`.
-- Runs `create-zitadel-netbird-sso-project.sh` to create a Zitadel OIDC Web
-Application for NetBird
+- Runs `create-zitadel-netbird-sso-project.sh` to create a Zitadel OIDC web application for NetBird
 
 4. Prepares migration seed:
 - Creates a `connector.json` OIDC config for Zitadel.
@@ -60,7 +59,7 @@ Helper script used by the migration flow to prepare Zitadel for NetBird SSO.
 What it does:
 - Validates your Zitadel API access using `MIGRATE_FROM_ZITATEL_PAT`.
 - Creates (or reuses) a Zitadel project (default name: `NetBird SSO`).
-- Creates an OIDC Web application with NetBird-compatible settings.
+- Creates an OIDC web application with NetBird-compatible settings.
 - Writes created credentials to `netbird-migrate-from-zitadel.env`.
 
 Requirements:
