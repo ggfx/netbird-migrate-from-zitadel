@@ -64,7 +64,7 @@ fi
 
 # First check if this script is required to run. Check in docker compose if there is already a container name "netbird-server" then exit with a message that migration is not needed.
 # This ensures that users do not run the migration tool unnecessarily if they are already on the latest version of Netbird.
-if docker compose ps | grep -q "netbird-server"; then
+if docker compose ps | grep -q "netbirdio/netbird-server"; then
   echo "Netbird Server container is already running. Migration from Zitadel is not needed."
   exit 0
 fi
@@ -238,12 +238,35 @@ set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_SILENT_REDIRECT_URI" "/nb-silent-a
 # Finally start the management and dahboard containers again to apply the new configuration and complete the migration process.
 docker compose up -d --force-recreate management dashboard
 
-# Inform the user about the next steps to complete the migration process, which include updating the Caddyfile to route /oauth2/* to the management server for OIDC authentication and verifying the OIDC configuration with a curl command.
-echo "Migration completed. Please update your Caddyfile to route /oauth2/* to the management server for OIDC authentication."
-echo Place "reverse_proxy /oauth2/* management:80" alongside /api/* into the Caddyfile or your custom configuration.
-echo Then run: docker compose restart caddy
-echo Verify route: curl -s https://$DOMAIN/oauth2/.well-known/openid-configuration | head -5
-echo You should see the new oauth2 configuration for your Dex-IdP with the correct issuer URL.
+# Check wether Caddy is running in the docker-compose setup then update the local Caddyfile.
+# Find reverse_proxy /api/* management:80 in Caddyfile and insert reverse_proxy /oauth2/* management:80 below it.
+# Restart caddy to apply the changes.
+if docker compose ps | grep -q "caddy" && ! grep -q "reverse_proxy /oauth2/\* management:80" "$SCRIPT_DIR/Caddyfile"; then
+  API_PROXY_LINE=$(grep -n "reverse_proxy /api/\* management:80" "$SCRIPT_DIR/Caddyfile" | head -n1 | cut -d: -f1)
+  if [[ -n "$API_PROXY_LINE" ]]; then
+    sed -i "${API_PROXY_LINE}a\\
+    reverse_proxy /oauth2/* management:80" "$SCRIPT_DIR/Caddyfile"
+    docker compose restart caddy
+    # Verify route
+    if curl -s https://$DOMAIN/oauth2/.well-known/openid-configuration | head -5; then
+      echo "OIDC configuration is available at https://$DOMAIN/oauth2/.well-known/openid-configuration"
+    else
+      echo "Failed to verify OIDC configuration at https://$DOMAIN/oauth2/.well-known/openid-configuration"
+      echo "Please check if oauth2 route is correctly configured in your Caddyfile and that the management server is running properly."
+    fi
+    echo ============================================================
+    echo "Migration completed."
+  else
+    # Inform the user about the next steps to complete the migration process, which include updating the Caddyfile to route /oauth2/* to the management server for OIDC authentication and verifying the OIDC configuration with a curl command.
+    echo ============================================================
+    echo "Migration completed. Please update your Caddyfile to route /oauth2/* to the management server for OIDC authentication."
+    echo Place "reverse_proxy /oauth2/* management:80" alongside /api/* into the Caddyfile or your custom configuration.
+    echo Then restart caddy
+    echo Verify route: curl -s https://$DOMAIN/oauth2/.well-known/openid-configuration | head -5
+    echo You should see the new oauth2 configuration for your Dex-IdP with the correct issuer URL.
+  fi
+fi
+
 echo If there are any issues please check the migration guide at https://docs.netbird.io/selfhosted/migration/external-to-embedded-idp#troubleshooting
 echo At any point, you can rollback with netbird-migrate-rollback.sh using the backup files created in this migration process.
 
