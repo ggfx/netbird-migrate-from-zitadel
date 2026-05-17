@@ -257,11 +257,11 @@ if docker compose ps | grep -q "caddy" && ! grep -q "reverse_proxy /oauth2/\* ma
     echo ============================================================
     echo "Migration completed."
   else
-    # Inform the user about the next steps to complete the migration process, which include updating the Caddyfile to route /oauth2/* to the management server for OIDC authentication and verifying the OIDC configuration with a curl command.
+    # Inform the user about the next steps to complete the migration process, which include updating the Webserver to route /oauth2/* to the management server for OIDC authentication and verifying the OIDC configuration with a curl command.
     echo ============================================================
-    echo "Migration completed. Please update your Caddyfile to route /oauth2/* to the management server for OIDC authentication."
-    echo Place "reverse_proxy /oauth2/* management:80" alongside /api/* into the Caddyfile or your custom configuration.
-    echo Then restart caddy
+    echo "Migration completed. Please update your Webserver to route /oauth2/* to the management server for OIDC authentication."
+    echo Place "reverse_proxy /oauth2/* management:80" alongside /api/* into your Webserver configuration.
+    echo Then restart your webserver to apply the changes.
     echo Verify route: curl -s https://$DOMAIN/oauth2/.well-known/openid-configuration | head -5
     echo You should see the new oauth2 configuration for your Dex-IdP with the correct issuer URL.
   fi
