@@ -1,39 +1,39 @@
 # NetBird migration from Zitadel IdP to embedded Dex IdP
 
 This repository provides a guided migration flow for self-hosted NetBird deployments
-that still use the legacy 5-container Docker stack with external Zitadel authentication.
+using the legacy multi-container Docker setup with external Zitadel authentication.
 
-The main script, `netbird-migrate-from-zitadel.sh`, is an attempt to automate the migration as much as possible, as described in the migration:
-https://docs.netbird.io/selfhosted/migration/external-to-embedded-idp
+The main script, `netbird-migrate-from-zitadel.sh`, is an attempt to automate as much as possible from the [official migration guide](https://docs.netbird.io/selfhosted/migration/external-to-embedded-idp).
 
 ## Key features
 
 - Safe by default (`dry-run` first).
 - Built-in compatibility check against latest NetBird release.
 - Automatic backup creation before destructive changes.
+- Automatic creation of a OIDC Web Application via Zitadel v1 API.
 - Automatic `dashboard.env` key updates via `set_env_var` helper.
-- Clear operator guidance for manual Caddy route completion.
+- Clear operator guidance for Caddy route completion.
 - Includes rollback script for quick recovery.
 
 ## Requisites
 
-Before running `netbird-migrate-from-zitadel.sh`, you need a Zitadel OIDC Web
-Application for NetBird.
+A Zitadel OIDC web application for Netbird is required.
+A **Personal Access Token (PAT)** with Org Owner permission is necessary for the script to create this automatically.
 
-You must provide a Personal Access Token (PAT) with
-Org Owner permission in your Zitadel organization. Create one with very short expiration (max 1 day).
+Login to Zitadel as Administrator, go to Users -> service-users, choose _zitadel-admin-sa_ -> Personal Access Tokens and click on New.
 
-Login to Zitadel as Administrator, got to Users -> service-users, choose _zitadel-admin-sa_ -> Personal Access Tokens and click on New. **Copy the Token to the file `netbird-migrate-from-zitadel.env` in Netbird directory** (if the file is missing, create it):
+Create one with very short expiration (1 day).
+![Create service user PAT](assets/zitadel-service-user-pat-00.png)<br>
+
+**Copy the Token to the file `netbird-migrate-from-zitadel.env` in Netbird directory** (if the file is missing, create it):
 ```sh
 MIGRATE_FROM_ZITATEL_PAT="YOUR-PERSONAL-ACCESS-TOKEN"
 ```
 
-![Create service user PAT](assets/zitadel-service-user-pat-00.png)<br>
-<br>
-Go back to Organization, click on managers:
+Go to Organization, click on managers:
 ![Add Organization manager](assets/zitadel-service-user-pat-01.png)<br>
 <br>
-Add zitadel-admin-sa:
+Add _zitadel-admin-sa_:
 ![Add zitadel-admin-sa as manager](assets/zitadel-service-user-pat-02.png)<br>
 <br>
 Set permissions for zitadel-admin-sa to Org Owner:
@@ -41,7 +41,7 @@ Set permissions for zitadel-admin-sa to Org Owner:
 
 ## Usage
 
-Download the scripts to your legacy NetBird directory where compose/config files are present.
+Download the scripts to your NetBird directory where compose/config files are present.
 
 ```bash
 curl -fsSL https://github.com/ggfx/netbird-migrate-from-zitadel/raw/main/netbird-migrate-from-zitadel.sh -o netbird-migrate-from-zitadel.sh && chmod +x netbird-migrate-from-zitadel.sh
@@ -84,3 +84,7 @@ sudo ./netbird-migrate-from-zitadel.sh --apply --download
 ```
 
 More details about the scripts can be found in [DOCS.md](DOCS.md).
+
+## Tests
+
+Was tested on two Installations running Netbird version 0.71.0 and 0.71.2, with and without Caddy, using Zitadel version 2.64.1.
