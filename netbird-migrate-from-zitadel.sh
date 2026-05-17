@@ -146,6 +146,9 @@ if [[ -z "${CLIENT_ID:-}" || -z "${CLIENT_SECRET:-}" ]]; then
     echo "https://docs.netbird.io/selfhosted/identity-providers/zitadel"
     echo "Console: https://$DOMAIN_Z/ui/console/"
     exit 1
+  else
+    # Source the env file again to get the updated values after running the create-zitadel-netbird-sso-project.sh script
+    source "$OUTPUT_ENV"
   fi
 fi
 
