@@ -135,16 +135,14 @@ if [[ ! -f "$OUTPUT_ENV" ]]; then
 # The script will also read the necessary configuration from your existing dashboard.env and zitadel.env files to set up the OIDC provider configuration correctly for the migration process.
 # If there is any issue this scripts exits with an appropriate message to help you troubleshoot the configuration.
   if ! ./create-zitadel-netbird-sso-project.sh; then
-    echo "Failed to create Zitadel project/application. Aborting migration."
+    echo "Aborting migration."
     exit 1
   fi
 fi
 source "$OUTPUT_ENV"
 if [[ -z "${CLIENT_ID:-}" || -z "${CLIENT_SECRET:-}" ]]; then
   if ! ./create-zitadel-netbird-sso-project.sh; then
-    echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in $OUTPUT_ENV."
-    echo "You can use the create-zitadel-netbird-sso-project.sh script to create a project and OIDC Web application for NetBird in your Zitadel instance which will write the resulting client credentials to $OUTPUT_ENV."
-    echo "If you want to manually create a Zitadel Web application for Netbird, you can follow the instructions in the documentation:"
+    echo "If you want to manually create a Zitadel Web application for Netbird, fill in CLIENT_ID/CLIENT_SECRET in $OUTPUT_ENV. You can follow the instructions in the documentation:"
     echo "https://docs.netbird.io/selfhosted/identity-providers/zitadel"
     echo "Console: https://$DOMAIN_Z/ui/console/"
     exit 1
