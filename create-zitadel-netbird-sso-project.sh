@@ -72,7 +72,8 @@ if [[ ! -f "$OUTPUT_ENV" ]]; then
   cat > "$OUTPUT_ENV" <<EOF
 MIGRATE_FROM_ZITATEL_PAT=""
 EOF
-  echo "Created $OUTPUT_ENV template. Fill it and re-run."
+  echo "Created $OUTPUT_ENV template."
+  echo "Please create a Personal Access Token (PAT) and set the value of MIGRATE_FROM_ZITATEL_PAT='' in $OUTPUT_ENV."
   exit 1
 fi
 

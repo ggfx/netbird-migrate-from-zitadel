@@ -70,10 +70,14 @@ if docker compose ps | grep -q "netbirdio/netbird-server"; then
 fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+OUTPUT_ENV="$SCRIPT_DIR/netbird-migrate-from-zitadel.env"
+ZITADEL_ENV_FILE="$SCRIPT_DIR/zitadel.env"
+DASHBOARD_ENV_FILE="$SCRIPT_DIR/dashboard.env"
+CADDY_FILE="$SCRIPT_DIR/Caddyfile"
 
 # Verify that we are in the correct directory by checking for the presence of dashboard.env and zitadel.env files.
 # If these files are missing, exit with a message to run the script from the correct directory.
-if [[ ! -f "$SCRIPT_DIR/dashboard.env" || ! -f "$SCRIPT_DIR/zitadel.env" ]]; then
+if [[ ! -f "$DASHBOARD_ENV_FILE" || ! -f "$ZITADEL_ENV_FILE" ]]; then
   echo "Please run this script from the directory where your dashboard.env and zitadel.env files are located."
   exit 1
 fi
@@ -82,14 +86,14 @@ LATEST_TAG=$(curl -s https://api.github.com/repos/netbirdio/netbird/releases/lat
 LATEST_V=${LATEST_TAG#*v}
 
 # Get the domain from dashboard.env, find NETBIRD_MGMT_API_ENDPOINT and extract the domain part from the URL. This is needed to configure the OIDC provider for Zitadel.
-DOMAIN=$(grep -Eo 'NETBIRD_MGMT_API_ENDPOINT=https?://[^/"]+' "$SCRIPT_DIR/dashboard.env" | awk -F[/:] '{print $4}')
+DOMAIN=$(grep -Eo 'NETBIRD_MGMT_API_ENDPOINT=https?://[^/"]+' "$DASHBOARD_ENV_FILE" | awk -F[/:] '{print $4}')
 
 # Read variables from zitadel.env, using ZITADEL_EXTERNALDOMAIN as the domain if it is set, otherwise fallback to the domain extracted from dashboard.env. This allows users to specify a different domain for Zitadel if needed.
-source "$SCRIPT_DIR/zitadel.env"
+source "$ZITADEL_ENV_FILE"
 DOMAIN_Z=${ZITADEL_EXTERNALDOMAIN:-$DOMAIN}
 
 # Stop the script if dashboard.env already contains https://$DOMAIN/oauth2"
-if grep -q "https://$DOMAIN/oauth2" "$SCRIPT_DIR/dashboard.env"; then
+if grep -q "https://$DOMAIN/oauth2" "$DASHBOARD_ENV_FILE"; then
   echo "Dashboard is already configured with the new OIDC provider. Migration from Zitadel may have already been applied."
   echo "With this script you can not re-apply the migration, because your backups will be overwritten and you may lose data. You need to rollback first."
   exit 1
@@ -124,7 +128,7 @@ fi
 # Read CLIENT_ID and CLIENT_SECRET from netbird-migrate-from-zitadel.env, create file with empty keys, if it does not exist.
 # This file is expected to be created by the user with the credentials from the Zitadel Web application.
 # Stop early when netbird-migrate-from-zitadel.env file is missing or the web app credentials are not configured yet. Check for missing client_id or client_secret and exit with a message to set up a Zitadel Web application first.
-if [[ ! -f "$SCRIPT_DIR/netbird-migrate-from-zitadel.env" ]]; then
+if [[ ! -f "$OUTPUT_ENV" ]]; then
 # Manual step required: Create a Personal Access Token
 # Use the script create-zitadel-netbird-sso-project.sh to create a project and OIDC Web application for NetBird in your Zitadel instance.
 # It will write the resulting client credentials to netbird-migrate-from-zitadel.env
@@ -135,11 +139,11 @@ if [[ ! -f "$SCRIPT_DIR/netbird-migrate-from-zitadel.env" ]]; then
     exit 1
   fi
 fi
-source "$SCRIPT_DIR/netbird-migrate-from-zitadel.env"
+source "$OUTPUT_ENV"
 if [[ -z "${CLIENT_ID:-}" || -z "${CLIENT_SECRET:-}" ]]; then
   if ! ./create-zitadel-netbird-sso-project.sh; then
-    echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in netbird-migrate-from-zitadel.env."
-    echo "You can use the create-zitadel-netbird-sso-project.sh script to create a project and OIDC Web application for NetBird in your Zitadel instance which will write the resulting client credentials to netbird-migrate-from-zitadel.env."
+    echo "Please set up a Zitadel Web application first and then fill in CLIENT_ID/CLIENT_SECRET in $OUTPUT_ENV."
+    echo "You can use the create-zitadel-netbird-sso-project.sh script to create a project and OIDC Web application for NetBird in your Zitadel instance which will write the resulting client credentials to $OUTPUT_ENV."
     echo "If you want to manually create a Zitadel Web application for Netbird, you can follow the instructions in the documentation:"
     echo "https://docs.netbird.io/selfhosted/identity-providers/zitadel"
     echo "Console: https://$DOMAIN_Z/ui/console/"
@@ -181,7 +185,7 @@ export NETBIRD_CONFIG_PATH="$SCRIPT_DIR/management.json"
 # cat "$NETBIRD_CONFIG_PATH"
 
 # Verify dashboard.env exists, then make a back up
-export DASHBOARD_ENV_PATH="$SCRIPT_DIR/dashboard.env"
+export DASHBOARD_ENV_PATH="$DASHBOARD_ENV_FILE"
 
 if [[ $DRY_RUN -eq 0 ]]; then
   # (SQLite only) Verify store.db exists, then back up
@@ -228,12 +232,12 @@ fi
 # Replace OIDC block in dashboard.env with the new OIDC provider configuration for Zitadel.
 # This ensures that the dashboard is configured to use the new OIDC provider for authentication after the migration is complete.
 
-set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_AUDIENCE" "netbird-dashboard"
-set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_CLIENT_ID" "netbird-dashboard"
-set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_AUTHORITY" "https://$DOMAIN/oauth2"
-set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_SUPPORTED_SCOPES" "openid profile email groups"
-set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_REDIRECT_URI" "/nb-auth"
-set_env_var "$SCRIPT_DIR/dashboard.env" "AUTH_SILENT_REDIRECT_URI" "/nb-silent-auth"
+set_env_var "$DASHBOARD_ENV_FILE" "AUTH_AUDIENCE" "netbird-dashboard"
+set_env_var "$DASHBOARD_ENV_FILE" "AUTH_CLIENT_ID" "netbird-dashboard"
+set_env_var "$DASHBOARD_ENV_FILE" "AUTH_AUTHORITY" "https://$DOMAIN/oauth2"
+set_env_var "$DASHBOARD_ENV_FILE" "AUTH_SUPPORTED_SCOPES" "openid profile email groups"
+set_env_var "$DASHBOARD_ENV_FILE" "AUTH_REDIRECT_URI" "/nb-auth"
+set_env_var "$DASHBOARD_ENV_FILE" "AUTH_SILENT_REDIRECT_URI" "/nb-silent-auth"
 
 # Finally start the management and dahboard containers again to apply the new configuration and complete the migration process.
 docker compose up -d --force-recreate management dashboard
@@ -241,11 +245,11 @@ docker compose up -d --force-recreate management dashboard
 # Check wether Caddy is running in the docker-compose setup then update the local Caddyfile.
 # Find reverse_proxy /api/* management:80 in Caddyfile and insert reverse_proxy /oauth2/* management:80 below it.
 # Restart caddy to apply the changes.
-if docker compose ps | grep -q "caddy" && ! grep -q "reverse_proxy /oauth2/\* management:80" "$SCRIPT_DIR/Caddyfile"; then
-  API_PROXY_LINE=$(grep -n "reverse_proxy /api/\* management:80" "$SCRIPT_DIR/Caddyfile" | head -n1 | cut -d: -f1)
+if docker compose ps | grep -q "caddy" && ! grep -q "reverse_proxy /oauth2/\* management:80" "$CADDY_FILE"; then
+  API_PROXY_LINE=$(grep -n "reverse_proxy /api/\* management:80" "$CADDY_FILE" | head -n1 | cut -d: -f1)
   if [[ -n "$API_PROXY_LINE" ]]; then
     sed -i "${API_PROXY_LINE}a\\
-    reverse_proxy /oauth2/* management:80" "$SCRIPT_DIR/Caddyfile"
+    reverse_proxy /oauth2/* management:80" "$CADDY_FILE"
     docker compose restart caddy
     # Verify route
     if curl -s https://$DOMAIN/oauth2/.well-known/openid-configuration | head -5; then
